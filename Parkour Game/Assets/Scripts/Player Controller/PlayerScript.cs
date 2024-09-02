@@ -13,9 +13,18 @@ public class playerScript : MonoBehaviour
     [Header ("Player Animator")]
     public Animator animator;
 
+    [Header ("Player Collision and Gravity")]
+    public CharacterController cc;
+    public float surfaceCheckRadius = 0.3f;
+    public Vector3 surfaceCheckOffset;
+    public LayerMask surfaceLayer;
+    bool onSurface;
+
     private void Update()
     {
         PlayerMovement();
+        surfaceCheck();
+        Debug.Log("Player on surface" + onSurface);
     }
 
     void PlayerMovement()
@@ -32,12 +41,26 @@ public class playerScript : MonoBehaviour
 //if keys pressed, move and rotate the player
         if(movementAmount > 0)
         {
-            transform.position += movementDirection * movementSpeed * Time.deltaTime;
+            cc.Move (movementDirection * movementSpeed * Time.deltaTime);
             requiredRotation = Quaternion.LookRotation(movementDirection);
         }
 
         transform.rotation = Quaternion.RotateTowards(transform.rotation , requiredRotation , rotSpeed * Time.deltaTime);
 
         animator.SetFloat("Movement Value", movementAmount, 0.2f, Time.deltaTime);
+    }
+
+    void surfaceCheck()
+    {
+        onSurface = Physics.CheckSphere(transform.TransformPoint(surfaceCheckOffset), surfaceCheckRadius, surfaceLayer);
+    }
+
+    /// <summary>
+    /// Callback to draw gizmos only if the object is selected.
+    /// </summary>
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawSphere(transform.TransformPoint(surfaceCheckOffset), surfaceCheckRadius);
     }
 }
