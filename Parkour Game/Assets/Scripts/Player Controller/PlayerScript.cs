@@ -19,9 +19,22 @@ public class playerScript : MonoBehaviour
     public Vector3 surfaceCheckOffset;
     public LayerMask surfaceLayer;
     bool onSurface;
+    [SerializeField] float fallingSpeed;
+    [SerializeField]Vector3 moveDir;
 
     private void Update()
     {
+        if(onSurface)
+        {
+            fallingSpeed = 0;
+        }
+        else
+        {
+            fallingSpeed += Physics.gravity.y*Time.deltaTime; 
+        }
+
+        var velocity = moveDir * movementSpeed;
+        velocity.y = fallingSpeed;
         PlayerMovement();
         surfaceCheck();
         Debug.Log("Player on surface" + onSurface);
@@ -38,12 +51,16 @@ public class playerScript : MonoBehaviour
         var movementInput = (new Vector3(horizontal, 0 , vertical)).normalized;
 
         var movementDirection = mainCamera.flatRotation * movementInput;
+
 //if keys pressed, move and rotate the player
+        cc.Move (movementDirection * movementSpeed * Time.deltaTime);
+
         if(movementAmount > 0)
         {
-            cc.Move (movementDirection * movementSpeed * Time.deltaTime);
             requiredRotation = Quaternion.LookRotation(movementDirection);
         }
+
+        movementDirection = moveDir;
 
         transform.rotation = Quaternion.RotateTowards(transform.rotation , requiredRotation , rotSpeed * Time.deltaTime);
 
