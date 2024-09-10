@@ -71,10 +71,7 @@ public class playerScript : MonoBehaviour
     {
         onSurface = Physics.CheckSphere(transform.TransformPoint(surfaceCheckOffset), surfaceCheckRadius, surfaceLayer);
     }
-
-    /// <summary>
-    /// Callback to draw gizmos only if the object is selected.
-    /// </summary>
+    
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
