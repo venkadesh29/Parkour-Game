@@ -9,6 +9,9 @@ public class EnvironmentChecker : MonoBehaviour
     public float heightRayLength = 6f;
     public LayerMask obstacleLayer;
 
+    [Header("Check Ledge")]
+    [SerializeField] float ledgeRayLength = 11f;
+    [SerializeField] float ledgeRayHeightThreshold = 0.76f;
     public ObstacleInfo checkObstacle()
     {
         var hitData = new ObstacleInfo();
@@ -29,6 +32,36 @@ public class EnvironmentChecker : MonoBehaviour
 
         return hitData;
     }
+
+    public bool CheckLedge(Vector3 movementDirection , out LedgeInfo ledgeInfo)
+    {
+        ledgeInfo = new LedgeInfo();
+        if(movementDirection == Vector3 .zero)
+            return false;
+
+        float ledgerOriginOffset = 0.5f;
+        var ledgerOrigin = transform.position + movementDirection * ledgerOriginOffset + Vector3.up;
+
+        if(Physics.Raycast(ledgerOrigin, Vector3.down, out RaycastHit hit, ledgeRayLength, obstacleLayer))
+        {
+            Debug.DrawRay(ledgerOrigin, Vector3.down * ledgeRayLength, Color.blue);
+
+            var surfaceRaycastOrigin = transform.position + movementDirection - new Vector3 (0, 0.1f, 0);
+            if(Physics.Raycast(surfaceRaycastOrigin, -movementDirection, out RaycastHit surfaceHit, 2, obstacleLayer))
+            {
+                float LedgeHeight = transform.position.y - hit.point.y;
+
+                if(LedgeHeight > ledgeRayHeightThreshold)
+                {
+                    ledgeInfo.angle = Vector3.Angle(transform.forward, surfaceHit.normal);
+                    ledgeInfo.height = LedgeHeight;
+                    ledgeInfo.surfaceHit = surfaceHit; 
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
 
 public struct ObstacleInfo
@@ -37,4 +70,11 @@ public struct ObstacleInfo
         public bool heightHitFound;
         public RaycastHit hitInfo;
         public RaycastHit heightInfo;
+    }
+
+    public struct LedgeInfo
+    {
+        public float angle;
+        public float height;
+        public RaycastHit surfaceHit;
     }

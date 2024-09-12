@@ -8,6 +8,7 @@ public class ParkourController : MonoBehaviour
     bool playerInAction;
     public Animator animator;
     public playerScript playerScript;
+    [SerializeField] NewParkourAction jumpDownParkourAction;
 
     [Header("Parkour Action Area")]
     public List<NewParkourAction> newParkourAction;
@@ -29,6 +30,15 @@ public class ParkourController : MonoBehaviour
                         break; 
                     }
                 }
+            }
+        }
+
+        if(playerScript.playerOnLedge && !playerInAction && Input.GetButtonDown("Jump"))
+        {
+            if(playerScript.LedgeInfo.angle <= 50)
+            {
+                playerScript.playerOnLedge = false;
+                StartCoroutine(PerformParkourAction(jumpDownParkourAction));
             }
         }
     }

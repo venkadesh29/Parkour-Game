@@ -7,6 +7,7 @@ public class playerScript : MonoBehaviour
     [Header ("Player Movement")]
     public float movementSpeed = 5f;
     public MainCameraController mainCamera;
+    public EnvironmentChecker environmentChecker;
     public float rotSpeed = 600f;
     Quaternion requiredRotation;
     bool playerControl = true;
@@ -20,8 +21,12 @@ public class playerScript : MonoBehaviour
     public Vector3 surfaceCheckOffset;
     public LayerMask surfaceLayer;
     bool onSurface;
+    public bool playerOnLedge {get; set;}
+    public LedgeInfo LedgeInfo {get; set;}
     [SerializeField] float fallingSpeed;
     [SerializeField]Vector3 moveDir;
+    [SerializeField]Vector3 requiredMoveDir;
+    Vector3 velocity;
 
     private void Update()
     {
@@ -29,20 +34,37 @@ public class playerScript : MonoBehaviour
 
         if(!playerControl)
             return;
+
+        velocity = Vector3.zero;
         
         if(onSurface)
         {
-            fallingSpeed = 0;
+            fallingSpeed = 0f;
+            velocity = moveDir * movementSpeed;
+
+            playerOnLedge = environmentChecker.CheckLedge(moveDir, out LedgeInfo ledgeInfo);
+
+            if(playerOnLedge)
+            {
+                LedgeInfo = ledgeInfo;
+                playerLedgeMovement();
+                Debug.Log("PLayer is on ledge");
+            }
+
+            animator.SetFloat("Movement Value", velocity.magnitude / movementSpeed, 0.2f, Time.deltaTime);
+
         }
         else
         {
             fallingSpeed += Physics.gravity.y*Time.deltaTime; 
+
+            velocity = transform.forward * movementSpeed / 2;
         }
 
-        var velocity = moveDir * movementSpeed;
         velocity.y = fallingSpeed;
 
         surfaceCheck();
+        animator.SetBool("onSurface" , onSurface);
         Debug.Log("Player on surface" + onSurface);
     }
 
@@ -56,26 +78,37 @@ public class playerScript : MonoBehaviour
 
         var movementInput = (new Vector3(horizontal, 0 , vertical)).normalized;
 
-        var movementDirection = mainCamera.flatRotation * movementInput;
+       requiredMoveDir = mainCamera.flatRotation * movementInput;
 
 //if keys pressed, move and rotate the player
-        cc.Move (movementDirection * movementSpeed * Time.deltaTime);
+        cc.Move (velocity * Time.deltaTime);
 
-        if(movementAmount > 0)
+        if(movementAmount > 0 &&moveDir.magnitude > 0.2f)
         {
-            requiredRotation = Quaternion.LookRotation(movementDirection);
+            requiredRotation = Quaternion.LookRotation(moveDir);
         }
 
-        movementDirection = moveDir;
+        moveDir = requiredMoveDir;
 
         transform.rotation = Quaternion.RotateTowards(transform.rotation , requiredRotation , rotSpeed * Time.deltaTime);
 
-        animator.SetFloat("Movement Value", movementAmount, 0.2f, Time.deltaTime);
     }
 
     void surfaceCheck()
     {
         onSurface = Physics.CheckSphere(transform.TransformPoint(surfaceCheckOffset), surfaceCheckRadius, surfaceLayer);
+    }
+
+    void playerLedgeMovement()
+    {
+        float angle = Vector3.Angle(LedgeInfo.surfaceHit.normal, requiredMoveDir);
+
+        if(angle < 90)
+        {
+            velocity = Vector3.zero;
+            moveDir = Vector3.zero;
+
+        }
     }
     
     void OnDrawGizmosSelected()
@@ -94,5 +127,11 @@ public class playerScript : MonoBehaviour
             animator.SetFloat("movement Value" , 0f);
             requiredRotation = transform.rotation;
         }
+    }
+
+    public bool HasPlayerControl
+    {
+        get => playerControl;
+        set => playerControl = value;
     }
 }
