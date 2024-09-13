@@ -5,7 +5,6 @@ using UnityEngine;
 public class ParkourController : MonoBehaviour
 {
     public EnvironmentChecker environmentChecker;
-    bool playerInAction;
     public Animator animator;
     public playerScript playerScript;
     [SerializeField] NewParkourAction jumpDownParkourAction;
@@ -15,7 +14,7 @@ public class ParkourController : MonoBehaviour
 
     void Update()
     {
-        if(Input.GetButton("Jump") && !playerInAction)
+        if(Input.GetButton("Jump") && !playerScript.playerInAction)
         {    
             var hitData = environmentChecker.checkObstacle();
 
@@ -33,7 +32,7 @@ public class ParkourController : MonoBehaviour
             }
         }
 
-        if(playerScript.playerOnLedge && !playerInAction && Input.GetButtonDown("Jump"))
+        if(playerScript.playerOnLedge && !playerScript.playerInAction && Input.GetButtonDown("Jump"))
         {
             if(playerScript.LedgeInfo.angle <= 50)
             {
@@ -45,44 +44,24 @@ public class ParkourController : MonoBehaviour
 
     IEnumerator PerformParkourAction(NewParkourAction action)
     {
-        playerInAction = true;
         playerScript.SetControl(false);
 
-        animator.CrossFade(action.AnimationName, 0.2f);
-        yield return null;
-
-        var animationState = animator.GetNextAnimatorStateInfo(0); 
-        if(!animationState.IsName(action.AnimationName))
-            Debug.Log("Animation Name is Incorrect");
-
-        float timerCounter =0f;
-
-        while(timerCounter <= animationState.length)
+        CompareTargetParameter compareTargetParameter = null;
+        if(action.AllowTargetMatching)
         {
-            timerCounter += Time.deltaTime;
-
-            //Make player look towards the obstacle
-            if(action.LookAtObstacle)
+            compareTargetParameter = new CompareTargetParameter()
             {
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, action.RequiredRotation, playerScript.rotSpeed * Time.deltaTime);
-            }
-
-            if(action.AllowTargetMatching)
-            {
-                CompareTarget(action);
-            }
-
-            if(animator.IsInTransition(0) && timerCounter > 0.5f)
-            {
-                break;
-            }
-
-            yield return null;
+                position = action.ComparePosition,
+                bodyPart = action.CompareBodyPart,
+                positionWeight = action.ComparePositionWeight,
+                startTime = action.CompareStartTime,
+                endTime = action.CompareEndTime,
+            };
         }
-        
-        yield return new WaitForSeconds(action.ParkourActionDelay);
+
+        yield return playerScript.PerformAction(action.AnimationName, compareTargetParameter, action.RequiredRotation, action.LookAtObstacle, action.ParkourActionDelay);
+
         playerScript.SetControl(true);
-        playerInAction = false;
     }
 
     void CompareTarget(NewParkourAction action)
